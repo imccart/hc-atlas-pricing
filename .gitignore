@@ -1,0 +1,19 @@
+# Claude Code instructions (local only, not for public repos)
+CLAUDE.md
+
+# Data (track code, not data)
+data/
+
+# Scratch/temporary files
+scratch/
+
+# R artifacts
+.Rhistory
+.Rdata
+.RData
+.Rproj.user/
+*.Rproj
+
+# OS files
+.DS_Store
+Thumbs.db
