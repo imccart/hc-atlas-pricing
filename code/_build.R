@@ -9,10 +9,14 @@
 # Preliminaries -----------------------------------------------------------
 
 source("code/0-setup.R")
+source("code/code-lists.R")
 
 
 # Call individual code files ----------------------------------------------
 
-# source("code/1-example.R")
+source("code/1-hospitals.R")
+source("code/2-rates-clean.R")
+source("code/3-payer-harmonize.R")
+source("code/4-panel.R")
 
-message("Build complete.")
+message("\nBuild complete.")
