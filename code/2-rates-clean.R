@@ -3,27 +3,22 @@
 ## Title:         Rate Cleaning
 ## Author:        Ian McCarthy
 ## Date Created:  2026-02-16
-## Description:   Reads and combines DRG/CPT rate extracts, standardizes codes,
+## Description:   Combines DRG/CPT rate extracts, standardizes codes,
 ##                joins to target code list, and drops invalid charges.
 
-# Read rate extracts --------------------------------------------------------
+# Read and combine rate extracts -------------------------------------------
 
-rates_drg <- fread("data/output/oria-rates-drg.csv") %>% as_tibble()
-rates_cpt <- fread("data/output/oria-rates-cpt.csv") %>% as_tibble()
-
-message("DRG rates: ", nrow(rates_drg), " rows")
-message("CPT rates: ", nrow(rates_cpt), " rows")
-
-# Combine and standardize ---------------------------------------------------
-
-rates <- bind_rows(rates_drg, rates_cpt) %>%
-  rename(payer = payer_name,
-         plan = plan_name) %>%
+rates <- bind_rows(
+  fread("data/output/oria-rates-drg.csv") %>% as_tibble(),
+  fread("data/output/oria-rates-cpt.csv") %>% as_tibble()
+) %>%
+  rename(payer = payer_name, plan = plan_name) %>%
   mutate(standard_charge = as.numeric(standard_charge))
 
-message("Combined rates: ", nrow(rates), " rows")
+message("Combined rates: ", format(nrow(rates), big.mark = ","), " rows")
 
-# Create unified code + code_type columns
+# Create unified code + code_type columns ---------------------------------
+
 rates <- rates %>%
   mutate(
     code = case_when(
@@ -38,54 +33,22 @@ rates <- rates %>%
     )
   )
 
-# Join to target codes for labels, keep only our codes ----------------------
+# Keep only target codes ---------------------------------------------------
 
 rates <- rates %>%
   inner_join(target_codes %>% select(code, code_type, label),
              by = c("code", "code_type"))
 
-message("After filtering to target codes: ", nrow(rates), " rows")
-
-# Validate charges ----------------------------------------------------------
+# Drop invalid charges -----------------------------------------------------
 
 n_before <- nrow(rates)
-
 rates <- rates %>%
-  filter(!is.na(standard_charge),
-         is.finite(standard_charge),
-         standard_charge > 0)
+  filter(!is.na(standard_charge), is.finite(standard_charge), standard_charge > 0)
 
-n_dropped <- n_before - nrow(rates)
-message("Dropped ", n_dropped, " rows with NA/zero/negative/infinite charges (",
-        round(100 * n_dropped / n_before, 1), "%)")
+message("Dropped ", n_before - nrow(rates), " invalid charges, ",
+        format(nrow(rates), big.mark = ","), " remaining")
 
-# Diagnostics ---------------------------------------------------------------
-
-message("\nRow counts by code:")
-rates %>%
-  count(code_type, code, label, name = "n") %>%
-  arrange(code_type, code) %>%
-  mutate(msg = paste0("  ", code_type, " ", code, " (", label, "): ", n)) %>%
-  pull(msg) %>%
-  walk(message)
-
-zero_codes <- target_codes %>%
-  anti_join(rates %>% distinct(code, code_type), by = c("code", "code_type"))
-
-if (nrow(zero_codes) > 0) {
-  message("\nWARNING: ", nrow(zero_codes), " target codes have zero rows:")
-  walk(zero_codes$code, ~ message("  ", .x))
-}
-
-message("\nRow counts by rate_category:")
-rates %>%
-  count(rate_category, name = "n") %>%
-  arrange(desc(n)) %>%
-  mutate(msg = paste0("  ", rate_category, ": ", n)) %>%
-  pull(msg) %>%
-  walk(message)
-
-# Write output --------------------------------------------------------------
+# Write output -------------------------------------------------------------
 
 write_csv(rates, "data/output/rates-clean.csv")
-message("\nWrote data/output/rates-clean.csv: ", nrow(rates), " rows")
+message("Wrote data/output/rates-clean.csv")

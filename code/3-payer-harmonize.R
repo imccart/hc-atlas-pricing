@@ -6,14 +6,11 @@
 ## Description:   Classifies payer names into standardized categories using
 ##                regex matching. Non-negotiated rate types get payer_category NA.
 
-# Read cleaned rates --------------------------------------------------------
+# Read cleaned rates -------------------------------------------------------
 
 rates <- fread("data/output/rates-clean.csv") %>% as_tibble()
-message("Input rates: ", nrow(rates), " rows")
 
-# Payer classification ------------------------------------------------------
-# Regex cascade for major payer categories. Order matters: more specific
-# patterns first, catch-all "Other" last.
+# Payer classification -----------------------------------------------------
 
 classify_payer <- function(payer_name) {
   payer_upper <- toupper(payer_name)
@@ -36,61 +33,21 @@ classify_payer <- function(payer_name) {
   )
 }
 
-# Apply to negotiated rates only; non-negotiated get NA ---------------------
-
 rates <- rates %>%
-  mutate(
-    payer_category = if_else(
-      rate_category == "negotiated",
-      classify_payer(payer),
-      NA_character_
-    )
-  )
+  mutate(payer_category = if_else(
+    rate_category == "negotiated",
+    classify_payer(payer),
+    NA_character_
+  ))
 
-# Diagnostics ---------------------------------------------------------------
+# Diagnostics --------------------------------------------------------------
 
-message("\nPayer category distribution (negotiated rates only):")
-rates %>%
-  filter(rate_category == "negotiated") %>%
-  count(payer_category, name = "n") %>%
-  mutate(pct = round(100 * n / sum(n), 1)) %>%
-  arrange(desc(n)) %>%
-  mutate(msg = paste0("  ", payer_category, ": ", n, " (", pct, "%)")) %>%
-  pull(msg) %>%
-  walk(message)
+neg <- rates %>% filter(rate_category == "negotiated")
+classified <- sum(neg$payer_category != "Other")
+message("Payer classification: ", classified, " / ", nrow(neg),
+        " (", round(100 * classified / nrow(neg), 1), "%) matched")
 
-classified <- rates %>%
-  filter(rate_category == "negotiated", payer_category != "Other") %>%
-  nrow()
-total_neg <- rates %>%
-  filter(rate_category == "negotiated") %>%
-  nrow()
-
-if (total_neg > 0) {
-  message("\nPayer classification rate: ", classified, " / ", total_neg,
-          " (", round(100 * classified / total_neg, 1), "%) classified to named payer")
-}
-
-# Top unmatched payer names
-message("\nTop 20 unmatched payer names (classified as 'Other'):")
-rates %>%
-  filter(rate_category == "negotiated", payer_category == "Other") %>%
-  count(payer, name = "n") %>%
-  arrange(desc(n)) %>%
-  slice_head(n = 20) %>%
-  mutate(msg = paste0("  ", payer, ": ", n)) %>%
-  pull(msg) %>%
-  walk(message)
-
-message("\nRate category breakdown:")
-rates %>%
-  count(rate_category, name = "n") %>%
-  arrange(desc(n)) %>%
-  mutate(msg = paste0("  ", rate_category, ": ", n)) %>%
-  pull(msg) %>%
-  walk(message)
-
-# Write output --------------------------------------------------------------
+# Write output -------------------------------------------------------------
 
 write_csv(rates, "data/output/rates-payer.csv")
-message("\nWrote data/output/rates-payer.csv: ", nrow(rates), " rows")
+message("Wrote data/output/rates-payer.csv")
