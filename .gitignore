@@ -1,5 +1,6 @@
-# Claude Code instructions (local only, not for public repos)
+# Claude Code (local only, not for public repos)
 CLAUDE.md
+.claude/
 
 # Data (track code, not data)
 data/
