@@ -18,19 +18,19 @@ message("Hospitals: ", nrow(hospitals), " rows")
 
 panel <- rates %>%
   inner_join(
-    hospitals %>% select(ccn, name, state, aha_id, sysid),
-    by = "ccn"
+    hospitals %>% select(hospital_id, name, state, ccn, aha_id, sysid),
+    by = "hospital_id"
   )
 
 message("After joining to hospitals: ", nrow(panel), " rows")
-message("  Unique hospitals in panel: ", n_distinct(panel$ccn))
+message("  Unique hospitals in panel: ", n_distinct(panel$hospital_id))
 
 # Select final columns ------------------------------------------------------
 
 panel <- panel %>%
   select(
     # Hospital identifiers
-    ccn, name, state, aha_id, sysid,
+    hospital_id, ccn, name, state, aha_id, sysid,
     # Service
     code, code_type, label,
     # Rate
@@ -48,7 +48,7 @@ message("\nWrote data/output/price-panel.csv: ", nrow(panel), " rows")
 
 message("\n--- Panel Summary ---")
 message("Rows: ", nrow(panel))
-message("Unique hospitals: ", n_distinct(panel$ccn))
+message("Unique hospitals: ", n_distinct(panel$hospital_id))
 message("Unique codes: ", n_distinct(panel$code))
 message("States: ", n_distinct(panel$state))
 

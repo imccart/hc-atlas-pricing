@@ -8,8 +8,8 @@
 
 # Read rate extracts --------------------------------------------------------
 
-rates_drg <- fread("data/input/dolthub/rates-drg.csv") %>% as_tibble()
-rates_cpt <- fread("data/input/dolthub/rates-cpt.csv") %>% as_tibble()
+rates_drg <- fread("data/output/oria-rates-drg.csv") %>% as_tibble()
+rates_cpt <- fread("data/output/oria-rates-cpt.csv") %>% as_tibble()
 
 message("DRG rates: ", nrow(rates_drg), " rows")
 message("CPT rates: ", nrow(rates_cpt), " rows")
@@ -17,7 +17,9 @@ message("CPT rates: ", nrow(rates_cpt), " rows")
 # Combine and standardize ---------------------------------------------------
 
 rates <- bind_rows(rates_drg, rates_cpt) %>%
-  rename(ccn = hospital_id)
+  rename(payer = payer_name,
+         plan = plan_name) %>%
+  mutate(standard_charge = as.numeric(standard_charge))
 
 message("Combined rates: ", nrow(rates), " rows")
 

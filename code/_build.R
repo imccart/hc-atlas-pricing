@@ -12,6 +12,17 @@ source("code/0-setup.R")
 source("code/code-lists.R")
 
 
+# Extract data from Oria DuckDB (skip if already extracted) ---------------
+
+if (!file.exists("data/output/oria-hospital.csv") ||
+    !file.exists("data/output/oria-rates-drg.csv") ||
+    !file.exists("data/output/oria-rates-cpt.csv")) {
+  source("code/0-oria-extract.R")
+} else {
+  message("Oria extracts already exist, skipping extraction.")
+}
+
+
 # Call individual code files ----------------------------------------------
 
 source("code/1-hospitals.R")
