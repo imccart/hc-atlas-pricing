@@ -14,5 +14,6 @@ source("code/3-hospitals.R")
 source("code/4-rates-clean.R")
 source("code/5-payer-harmonize.R")
 source("code/6-panel.R")
+source("code/7-rand-hcris.R")
 
 message("\nBuild complete.")

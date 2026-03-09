@@ -33,10 +33,9 @@ rounds <- list(
 
 # 1. Hospital-level prices (Table 1) ----------------------------------------
 
-if (!file.exists("data/output/rand-hospitals.csv")) {
-  message("Extracting RAND hospital-level prices...")
+message("Extracting RAND hospital-level prices...")
 
-  read_t1 <- function(cfg) {
+read_t1 <- function(cfg) {
     d <- read_excel(cfg$file, sheet = cfg$t1$sheet, skip = cfg$t1$skip)
     names(d) <- str_replace_all(names(d), "\\n", " ") %>% str_squish()
 
@@ -80,19 +79,22 @@ if (!file.exists("data/output/rand-hospitals.csv")) {
       filter(!is.na(ccn), ccn != "All") %>%
       mutate(round = cfg$round, years = cfg$years,
              across(c(n_op, rp_op, sp_op, n_ip, rp_ip, sp_ip, rp_combined),
-                    ~ suppressWarnings(as.numeric(.x))))
+                    ~ suppressWarnings(as.numeric(.x)))) %>%
+      # Rounds 2-3 report relative prices as percentages (e.g., 288 = 288% of Medicare);
+      # Rounds 4-5 report as ratios (e.g., 2.88). Normalize to ratio scale.
+      { if (cfg$round <= 3) {
+          mutate(., across(c(rp_op, rp_ip, rp_combined), ~ .x / 100))
+        } else . }
   }
 
   hospitals <- map_dfr(rounds, read_t1)
   message("  ", format(nrow(hospitals), big.mark = ","), " hospital-rounds across ",
           n_distinct(hospitals$ccn), " unique CCNs")
-  write_csv(hospitals, "data/output/rand-hospitals.csv")
-}
+write_csv(hospitals, "data/output/rand-hospitals.csv")
 
 # 2. Service-line prices (Tables 4 & 5) -------------------------------------
 
-if (!file.exists("data/output/rand-service-lines.csv")) {
-  message("Extracting RAND service-line prices...")
+message("Extracting RAND service-line prices...")
 
   read_service <- function(cfg, setting) {
     info <- if (setting == "outpatient") cfg$t4 else cfg$t5
@@ -132,8 +134,13 @@ if (!file.exists("data/output/rand-service-lines.csv")) {
                       ~ suppressWarnings(as.numeric(.x))))
     }
 
-    bind_rows(lines) %>%
+    result <- bind_rows(lines) %>%
       mutate(round = cfg$round, years = cfg$years)
+    # Normalize rounds 2-3 relative prices from percentage to ratio scale
+    if (cfg$round <= 3) {
+      result <- result %>% mutate(relative_price = relative_price / 100)
+    }
+    result
   }
 
   service_lines <- map_dfr(rounds, function(cfg) {
@@ -149,7 +156,6 @@ if (!file.exists("data/output/rand-service-lines.csv")) {
 
   message("  ", format(nrow(service_lines), big.mark = ","), " rows across ",
           n_distinct(service_lines$service_line), " service lines")
-  write_csv(service_lines, "data/output/rand-service-lines.csv")
-}
+write_csv(service_lines, "data/output/rand-service-lines.csv")
 
 message("RAND extraction complete.")
