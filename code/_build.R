@@ -8,12 +8,9 @@
 source("code/0-setup.R")
 source("code/code-lists.R")
 
-source("code/1-oria-extract.R")
-source("code/2-rand-extract.R")
-source("code/3-hospitals.R")
-source("code/4-rates-clean.R")
-source("code/5-payer-harmonize.R")
-source("code/6-panel.R")
-source("code/7-rand-hcris.R")
+source("code/1-hcris.R")
+source("code/2-rand.R")
+source("code/3-oria.R")
+source("code/4-panel.R")
 
 message("\nBuild complete.")
